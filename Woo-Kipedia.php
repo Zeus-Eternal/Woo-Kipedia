@@ -1,33 +1,51 @@
 <?php
 /*
 Plugin Name: Woo-Kipedia
-Description: Integrate WooCommerce products into Wiki pages.
-Version: 0.1.0
+Description: Display all WooCommerce products using a shortcode.
+Version: 1.0.0
 Author: Zeus Eternal
 */
 
-// Display WooCommerce products and "Add to Cart" button
-function display_product_and_cart_button() {
-    // Check if the user is logged in
-    if (is_user_logged_in()) {
-        // User is logged in, display the "Add to Cart" button
-        global $product;
-        echo apply_filters('woocommerce_loop_add_to_cart_link', sprintf(
-            '<a href="%s" data-quantity="1" class="button %s" %s>Add to cart</a>',
-            esc_url($product->add_to_cart_url()),
-            esc_attr(isset($class) ? $class : 'button'),
-            isset($attributes) ? wc_implode_html_attributes($attributes) : ''
-        ), $product);
+// Shortcode for displaying all WooCommerce products
+function woo_kipedia_product_shortcode($atts) {
+    if (class_exists('WooCommerce')) {
+        ob_start();
+
+        $products = wc_get_products(array(
+            'status' => 'publish',
+            'limit' => -1,
+        ));
+
+        if ($products) {
+            foreach ($products as $product) {
+                echo "<h2>{$product->get_name()}</h2>";
+                echo "<p>Price: {$product->get_price()}</p>";
+
+                if ($product->get_description()) {
+                    echo "<div class='product-description'>{$product->get_description()}</div>";
+                }
+
+                if ($product->get_short_description()) {
+                    echo "<div class='short-description'>{$product->get_short_description()}</div>";
+                }
+
+                echo apply_filters('woocommerce_loop_add_to_cart_link', sprintf(
+                    '<a href="%s" class="button %s" %s>Add to Cart</a>',
+                    esc_url($product->add_to_cart_url()),
+                    esc_attr(isset($class) ? $class : 'button'),
+                    isset($attributes) ? wc_implode_html_attributes($attributes) : ''
+                ), $product);
+
+                echo "<div class='product-comments'>" . comments_template() . "</div>";
+            }
+        } else {
+            echo 'No products found.';
+        }
+
+        return ob_get_clean();
     } else {
-        // User is not logged in, you can optionally display a message or take other actions
-        echo 'Please log in to add products to your cart.';
+        // WooCommerce is not active, display a message
+        return 'WooCommerce is not installed.';
     }
 }
-
-// Add a shortcode to display products and the "Add to Cart" button on Wiki pages
-function wiki_product_shortcode($atts) {
-    ob_start();
-    display_product_and_cart_button();
-    return ob_get_clean();
-}
-add_shortcode('wiki_product', 'wiki_product_shortcode');
+add_shortcode('woo-kipedia-product', 'woo_kipedia_product_shortcode');
