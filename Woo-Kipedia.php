@@ -1,13 +1,70 @@
-   ?>
+<?php
+/*
+Plugin Name: Woo-Kipedia
+Description: Display WooCommerce Product pages as Wiki's with Shortcode
+Version: 0.2.5
+Author: Zeus The Eternal
+*/
+
+// Register settings page
+function woo_kipedia_register_settings() {
+    add_menu_page(
+        'Woo-Kipedia Settings',
+        'Woo-Kipedia',
+        'manage_options',
+        'woo-kipedia-settings',
+        'woo_kipedia_settings_page'
+    );
+
+    add_action('admin_init', 'woo_kipedia_register_settings_fields');
+}
+
+add_action('admin_menu', 'woo_kipedia_register_settings');
+
+// Register settings fields
+function woo_kipedia_register_settings_fields() {
+    register_setting('woo-kipedia-settings-group', 'woo-kipedia-per-page', 'woo_kipedia_sanitize_per_page');
+    register_setting('woo-kipedia-settings-group', 'woo-kipedia-order-by', 'sanitize_text_field');
+    register_setting('woo-kipedia-settings-group', 'woo-kipedia-order', 'woo_kipedia_sanitize_order');
+    register_setting('woo-kipedia-settings-group', 'woo-kipedia-max-description-words', 'woo_kipedia_sanitize_max_description_words');
+    register_setting('woo-kipedia-settings-group', 'woo-kipedia-show-price', 'sanitize_text_field');
+    register_setting('woo-kipedia-settings-group', 'woo-kipedia-show-thumbnail', 'sanitize_text_field');
+    register_setting('woo-kipedia-settings-group', 'woo-kipedia-show-read-more', 'sanitize_text_field');
+    register_setting('woo-kipedia-settings-group', 'woo-kipedia-read-more-text', 'sanitize_text_field');
+    register_setting('woo-kipedia-settings-group', 'woo-kipedia-button-text', 'sanitize_text_field');
+    register_setting('woo-kipedia-settings-group', 'woo-kipedia-button-font-size', 'woo_kipedia_sanitize_font_size');
+    register_setting('woo-kipedia-settings-group', 'woo-kipedia-link-as-button', 'sanitize_text_field'); // New option
+}
+
+// Sanitization callback functions
+function woo_kipedia_sanitize_per_page($input) {
+    return absint($input);
+}
+
+function woo_kipedia_sanitize_order($input) {
+    return in_array($input, array('asc', 'desc')) ? $input : 'asc';
+}
+
+function woo_kipedia_sanitize_max_description_words($input) {
+    return absint($input);
+}
+
+function woo_kipedia_sanitize_font_size($input) {
+    return preg_match('/^\d+(\.\d{1,2})?$/', $input) ? $input : '';
+}
+
+// Settings page content
+function woo_kipedia_settings_page() {
+    ?>
     <div class="wrap">
         <h1>Woo-Kipedia Settings</h1>
         <h2 class="nav-tab-wrapper">
             <a href="?page=woo-kipedia-settings"
                class="nav-tab <?php echo empty($_GET['tab']) ? 'nav-tab-active' : ''; ?>">General Settings</a>
-            <a href="?page=woo-kipedia-settings&tab=info"
-               class="nav-tab <?php echo isset($_GET['tab']) && $_GET['tab'] === 'info' ? 'nav-tab-active' : ''; ?>">Info</a>
             <a href="?page=woo-kipedia-settings&tab=usage"
                class="nav-tab <?php echo isset($_GET['tab']) && $_GET['tab'] === 'usage' ? 'nav-tab-active' : ''; ?>">Usage Instructions</a>
+            <a href="?page=woo-kipedia-settings&tab=info"
+               class="nav-tab <?php echo isset($_GET['tab']) && $_GET['tab'] === 'info' ? 'nav-tab-active' : ''; ?>">Info</a>
         </h2>
         <form method="post" action="options.php">
             <?php settings_fields('woo-kipedia-settings-group'); ?>
@@ -17,7 +74,7 @@
                     <tr valign="top">
                         <th scope="row">Products Per Page</th>
                         <td><input type="number" name="woo-kipedia-per-page"
-                                   value="<?php echo esc_attr(get_option('woo-kipedia-per-page', 10)); ?>"/></td>
+                                   value="<?php echo esc_attr(get_option('woo-kipedia-per-page', 20)); ?>"/></td>
                     </tr>
                     <tr valign="top">
                         <th scope="row">Order By</th>
@@ -51,7 +108,7 @@
                     <tr valign="top">
                         <th scope="row">Max Short Description Words</th>
                         <td><input type="number" name="woo-kipedia-max-description-words"
-                                   value="<?php echo esc_attr(get_option('woo-kipedia-max-description-words', 20)); ?>"/>
+                                   value="<?php echo esc_attr(get_option('woo-kipedia-max-description-words', 500)); ?>"/>
                         </td>
                     </tr>
                     <tr valign="top">
@@ -76,20 +133,31 @@
                         </td>
                     </tr>
                     <tr valign="top">
-                        <th scope="row">Show/Hide Read More Button</th>
+                        <th scope="row">Show Read More Button</th>
                         <td>
                             <label for="woo-kipedia-show-read-more">
                                 <input type="checkbox" id="woo-kipedia-show-read-more"
                                        name="woo-kipedia-show-read-more" value="yes"
                                     <?php checked(get_option('woo-kipedia-show-read-more', 'yes'), 'yes'); ?> />
-                                Show Read More Button
+                                Show Read More
                             </label>
                         </td>
                     </tr>
                     <tr valign="top">
                         <th scope="row">Read More Button Text</th>
                         <td><input type="text" name="woo-kipedia-read-more-text"
-                                   value="<?php echo esc_attr(get_option('woo-kipedia-read-more-text', 'Read More')); ?>"/>
+                                   value="<?php echo esc_attr(get_option('woo-kipedia-read-more-text', 'Read Woo-Ki')); ?>"/>
+                        </td>
+                    </tr>
+                    <tr valign="top">
+                        <th scope="row">Link as Button</th>
+                        <td>
+                            <label for="woo-kipedia-link-as-button">
+                                <input type="checkbox" id="woo-kipedia-link-as-button"
+                                       name="woo-kipedia-link-as-button" value="yes"
+                                    <?php checked(get_option('woo-kipedia-link-as-button', 'no'), 'yes'); ?> />
+                                Link as Button
+                            </label>
                         </td>
                     </tr>
                 </table>
@@ -116,46 +184,7 @@
                     <?php echo woo_kipedia_shortcode_usage_instructions(); ?>
                     <h3>Shortcodes for Displaying Product Information</h3>
                     <p>Use the following shortcodes to display various WooCommerce product information:</p>
-                    <div class="shortcode-section">
-                        <h4>[woo-kipedia-product]</h4>
-                        <p>Display a single product by specifying its ID.</p>
-                        <p>Example usage: <code>[woo-kipedia-product id="123"]</code></p>
-                    </div>
-                    <div class="shortcode-section">
-                        <h4>[woo-kipedia-product-random]</h4>
-                        <p>Display a random product.</p>
-                        <p>Example usage: <code>[woo-kipedia-product-random]</code></p>
-                    </div>
-                    <div class="shortcode-section">
-                        <h4>[woo-kipedia-product-popular]</h4>
-                        <p>Display popular products.</p>
-                        <p>Example usage: <code>[woo-kipedia-product-popular]</code></p>
-                    </div>
-                    <div class="shortcode-section">
-                        <h4>[woo-kipedia-product-sku]</h4>
-                        <p>Display a product by specifying its SKU (Stock Keeping Unit).</p>
-                        <p>Example usage: <code>[woo-kipedia-product-sku sku="SKU123"]</code></p>
-                    </div>
-                    <div class="shortcode-section">
-                        <h4>[woo-kipedia-product-categories]</h4>
-                        <p>Display products from specific categories by specifying their category IDs.</p>
-                        <p>Example usage: <code>[woo-kipedia-product-categories categories="1,2,3"]</code></p>
-                    </div>
-                    <div class="shortcode-section">
-                        <h4>[woo-kipedia-product-tags]</h4>
-                        <p>Display products with specific tags by specifying their tag slugs.</p>
-                        <p>Example usage: <code>[woo-kipedia-product-tags tags="tag1,tag2,tag3"]</code></p>
-                    </div>
-                    <div class="shortcode-section">
-                        <h4>[woo-kipedia-product-attributes]</h4>
-                        <p>Display products with specific attributes and their values.</p>
-                        <p>Example usage: <code>[woo-kipedia-product-attributes attributes="color:red,size:large"]</code></p>
-                    </div>
-                    <div class="shortcode-section">
-                        <h4>[woo-kipedia-product-reviews]</h4>
-                        <p>Display product reviews for a specific product by specifying its ID.</p>
-                        <p>Example usage: <code>[woo-kipedia-product-reviews id="123"]</code></p>
-                    </div>
+                    <!-- Shortcode descriptions here -->
                 </div>
             <?php } ?>
             <?php submit_button(); ?>
@@ -166,16 +195,16 @@
 
 // Shortcode for displaying WooCommerce products
 function woo_kipedia_shortcode($atts) {
-    // Shortcode attributes
     $atts = shortcode_atts(array(
-        'per_page' => get_option('woo-kipedia-per-page', 10),
+        'per_page' => get_option('woo-kipedia-per-page', 20),
         'order_by' => get_option('woo-kipedia-order-by', 'date'),
         'order' => get_option('woo-kipedia-order', 'asc'),
-        'max_description_words' => get_option('woo-kipedia-max-description-words', 20),
+        'max_description_words' => get_option('woo-kipedia-max-description-words', 500),
         'show_price' => get_option('woo-kipedia-show-price', 'yes'),
         'show_thumbnail' => get_option('woo-kipedia-show-thumbnail', 'yes'),
         'show_read_more' => get_option('woo-kipedia-show-read-more', 'yes'),
-        'read_more_text' => get_option('woo-kipedia-read-more-text', 'Read More'),
+        'read_more_text' => get_option('woo-kipedia-read-more-text', 'Read Woo-Ki'),
+        'link_as_button' => get_option('woo-kipedia-link-as-button', 'no'),
     ), $atts);
 
     // Query WooCommerce products
@@ -222,9 +251,16 @@ function woo_kipedia_shortcode($atts) {
                         </div>
                     <?php } ?>
                     <?php if ($atts['show_read_more'] === 'yes') { ?>
-                        <div class="product-read-more">
-                            <a href="<?php the_permalink(); ?>"><?php echo esc_html($atts['read_more_text']); ?></a>
-                        </div>
+                        <?php if ($atts['link_as_button'] === 'yes') { ?>
+                            <div class="product-button">
+                                <a href="<?php the_permalink(); ?>"
+                                   class="woo-kipedia-button"><?php echo esc_html($atts['read_more_text']); ?></a>
+                            </div>
+                        <?php } else { ?>
+                            <div class="product-read-more">
+                                <a href="<?php the_permalink(); ?>"><?php echo esc_html($atts['read_more_text']); ?></a>
+                            </div>
+                        <?php } ?>
                     <?php } ?>
                 </div>
             </div>
@@ -258,78 +294,23 @@ function woo_kipedia_shortcode_usage_instructions() {
     <pre>[woo-kipedia]</pre>
     <p>This shortcode supports the following attributes:</p>
     <ul>
-        <li><code>per_page</code> (default: 10) - Number of products to display per page.</li>
+        <li><code>per_page</code> (default: 20) - Number of products to display per page.</li>
         <li><code>order_by</code> (default: 'date') - Order products by 'date', 'title', or 'rand' (random).</li>
         <li><code>order</code> (default: 'asc') - Sort products in 'asc' (ascending) or 'desc' (descending) order.</li>
-        <li><code>max_description_words</code> (default: 20) - Maximum number of words to display in the short description.</li>
-        <li><code>show_price</code> (default: 'yes') - Show or hide product prices. Use 'yes' to show, 'no' to hide.</li>
-        <li><code>show_thumbnail</code> (default: 'yes') - Show or hide product thumbnail images. Use 'yes' to show, 'no' to hide.</li>
-        <li><code>show_read_more</code> (default: 'yes') - Show or hide the "Read More" button. Use 'yes' to show, 'no' to hide.</li>
-        <li><code>read_more_text</code> (default: 'Read More') - Text for the "Read More" button.</li>
+        <li><code>max_description_words</code> (default: 500) - Maximum number of words to display in the short description.</li>
+        <li><code>show_price</code> (default: 'yes') - Show product prices ('yes' or 'no').</li>
+        <li><code>show_thumbnail</code> (default: 'yes') - Show product thumbnail images ('yes' or 'no').</li>
+        <li><code>show_read_more</code> (default: 'yes') - Show the "Read More" link or button ('yes' or 'no').</li>
+        <li><code>read_more_text</code> (default: 'Read Woo-Ki') - Text for the "Read More" link or button.</li>
+        <li><code>link_as_button</code> (default: 'no') - Display the "Read More" link as a button ('yes' or 'no').</li>
     </ul>
     <?php
     return ob_get_clean();
 }
 
-// Shortcodes for displaying single product, random product, popular product, SKU, categories, tags, attributes, and reviews
-add_shortcode('woo-kipedia-product', 'woo_kipedia_single_product_shortcode');
-add_shortcode('woo-kipedia-product-random', 'woo_kipedia_random_product_shortcode');
-add_shortcode('woo-kipedia-product-popular', 'woo_kipedia_popular_product_shortcode');
-add_shortcode('woo-kipedia-product-sku', 'woo_kipedia_product_sku_shortcode');
-add_shortcode('woo-kipedia-product-categories', 'woo_kipedia_product_categories_shortcode');
-add_shortcode('woo-kipedia-product-tags', 'woo_kipedia_product_tags_shortcode');
-add_shortcode('woo-kipedia-product-attributes', 'woo_kipedia_product_attributes_shortcode');
-add_shortcode('woo-kipedia-product-reviews', 'woo_kipedia_product_reviews_shortcode');
-
-// Extend the Usage Tab with documentation for the new shortcodes
-function woo_kipedia_extend_usage_tab($content) {
-    $extended_content = woo_kipedia_shortcode_usage_instructions();
-
-    // Document the new shortcodes
-    $extended_content .= '<h3>Shortcodes for Displaying Product Information</h3>';
-    $extended_content .= '<p>Use the following shortcodes to display various WooCommerce product information:</p>';
-    $extended_content .= '<div class="shortcode-section">';
-    $extended_content .= '<h4>[woo-kipedia-product]</h4>';
-    $extended_content .= '<p>Display a single product by specifying its ID.</p>';
-    $extended_content .= '<p>Example usage: <code>[woo-kipedia-product id="123"]</code></p>';
-    $extended_content .= '</div>';
-    $extended_content .= '<div class="shortcode-section">';
-    $extended_content .= '<h4>[woo-kipedia-product-random]</h4>';
-    $extended_content .= '<p>Display a random product.</p>';
-    $extended_content .= '<p>Example usage: <code>[woo-kipedia-product-random]</code></p>';
-    $extended_content .= '</div>';
-    $extended_content .= '<div class="shortcode-section">';
-    $extended_content .= '<h4>[woo-kipedia-product-popular]</h4>';
-    $extended_content .= '<p>Display popular products.</p>';
-    $extended_content .= '<p>Example usage: <code>[woo-kipedia-product-popular]</code></p>';
-    $extended_content .= '</div>';
-    $extended_content .= '<div class="shortcode-section">';
-    $extended_content .= '<h4>[woo-kipedia-product-sku]</h4>';
-    $extended_content .= '<p>Display a product by specifying its SKU (Stock Keeping Unit).</p>';
-    $extended_content .= '<p>Example usage: <code>[woo-kipedia-product-sku sku="SKU123"]</code></p>';
-    $extended_content .= '</div>';
-    $extended_content .= '<div class="shortcode-section">';
-    $extended_content .= '<h4>[woo-kipedia-product-categories]</h4>';
-    $extended_content .= '<p>Display products from specific categories by specifying their category IDs.</p>';
-    $extended_content .= '<p>Example usage: <code>[woo-kipedia-product-categories categories="1,2,3"]</code></p>';
-    $extended_content .= '</div>';
-    $extended_content .= '<div class="shortcode-section">';
-    $extended_content .= '<h4>[woo-kipedia-product-tags]</h4>';
-    $extended_content .= '<p>Display products with specific tags by specifying their tag slugs.</p>';
-    $extended_content .= '<p>Example usage: <code>[woo-kipedia-product-tags tags="tag1,tag2,tag3"]</code></p>';
-    $extended_content .= '</div>';
-    $extended_content .= '<div class="shortcode-section">';
-    $extended_content .= '<h4>[woo-kipedia-product-attributes]</h4>';
-    $extended_content .= '<p>Display products with specific attributes and their values.</p>';
-    $extended_content .= '<p>Example usage: <code>[woo-kipedia-product-attributes attributes="color:red,size:large"]</code></p>';
-    $extended_content .= '</div>';
-    $extended_content .= '<div class="shortcode-section">';
-    $extended_content .= '<h4>[woo-kipedia-product-reviews]</h4>';
-    $extended_content .= '<p>Display product reviews for a specific product by specifying its ID.</p>';
-    $extended_content .= '<p>Example usage: <code>[woo-kipedia-product-reviews id="123"]</code></p>';
-    $extended_content .= '</div>';
-
-    return $content . $extended_content;
+// Enqueue CSS styles
+function woo_kipedia_enqueue_styles() {
+    wp_enqueue_style('woo-kipedia-styles', plugin_dir_url(__FILE__) . 'styles.css');
 }
 
-add_filter('woo-kipedia-settings-tab-usage', 'woo_kipedia_extend_usage_tab');
+add_action('wp_enqueue_scripts', 'woo_kipedia_enqueue_styles');
