@@ -325,7 +325,7 @@ add_action('wp_enqueue_scripts', 'woo_kipedia_enqueue_styles');
 
 // Enqueue the JavaScript file
 function woo_kipedia_enqueue_admin_scripts() {
-    wp_enqueue_script('woo-kipedia-admin', plugin_dir_url(__FILE__) . 'js/woo-kipedia-admin.js', array('jquery'), '1.0', true);
+    wp_enqueue_script('woo-kipedia-admin', plugin_dir_url(__FILE__) . 'assets/js/woo-kipedia-admin.js', array('jquery'), '1.0', true);
 
     // Pass Ajax URL to script.js
     wp_localize_script('woo-kipedia-admin', 'wooKipediaAjax', array(
